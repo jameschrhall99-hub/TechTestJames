@@ -58,6 +58,48 @@ public class AgeCalculatorTests
     }
 
     [Fact]
+    public void CalculateAgeTestDayBefore18thBirthday()
+    {
+        //setup test constants
+        var dateOfBirth = new DateOnly(2008, 9, 24);
+        var today = new DateOnly(2026, 9, 23);
+
+        //calculate age
+        var age = AgeCalculator.GetAge(dateOfBirth, today);
+
+        //check method calculation is correct
+        Assert.Equal(17, age);
+    }
+
+    [Fact]
+    public void CalculateAgeTestOn18thBirthday()
+    {
+        //setup test constants
+        var dateOfBirth = new DateOnly(2008, 9, 24);
+        var today = new DateOnly(2026, 9, 24);
+
+        //calculate age
+        var age = AgeCalculator.GetAge(dateOfBirth, today);
+
+        //check method calculation is correct
+        Assert.Equal(18, age);
+    }
+
+    [Fact]
+    public void CalculateAgeTestDayBefore16thBirthday()
+    {
+        //setup test constants
+        var dateOfBirth = new DateOnly(2010, 9, 24);
+        var today = new DateOnly(2026, 9, 23);
+
+        //calculate age
+        var age = AgeCalculator.GetAge(dateOfBirth, today);
+
+        //check method calculation is correct
+        Assert.Equal(15, age);
+    }
+
+    [Fact]
     public void CalculateAgeTestDayBefore()
     {
         //setup test constants

@@ -22,3 +22,8 @@ dotnet test LifestyleChecker.slnx
 ```
 
 The test project is wired into the solution.
+
+## Assumptions
+
+- The confirmed scoring age bands are 16–21, 22–40, 41–65, and 66+. Someone aged 65 is in the 41–65 band.
+- A 29 February birthday is treated as occurring on 1 March in non-leap years.
