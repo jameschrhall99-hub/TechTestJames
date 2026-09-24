@@ -6,6 +6,91 @@ Ask for the patient's NHS number, surname, and date of birth. Check those detail
 
 Work in `src/LifestyleChecker`. The existing xUnit project is `tests/LifestyleChecker.Tests`.
 
+## How this fits the current project
+
+The project already has `Rules/PatientMatcher.cs` (`MyPatientMatcher` namespace), `Rules/AgeCalculator.cs` (`MyAgeCalculator` namespace), and an xUnit project. `Pages/Index.cshtml` and `Pages/Index.cshtml.cs` are still the template home page, so use them for the Part One form. `Api/PatientApiClient.cs` and `Models/PatientInfo.cs` are currently empty files. `Program.cs` now has an `AddHttpClient<PatientApiClient>` registration with a five-second timeout, the API base address, and configuration for the subscription key; finish the client class next so that registration has a real type to construct.
+
+### A. Check the registration in `Program.cs`
+
+Keep the registration after `builder.Services.AddRazorPages()` and add `using LifestyleChecker.Api;` at the top:
+
+```csharp
+builder.Services.AddHttpClient<PatientApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://al-tech-test-apim.azure-api.net/");
+    client.Timeout = TimeSpan.FromSeconds(5);
+
+    var key = builder.Configuration["PatientApi:SubscriptionKey"];
+    if (string.IsNullOrWhiteSpace(key))
+        throw new InvalidOperationException("Configure PatientApi:SubscriptionKey.");
+
+    client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
+});
+```
+
+This registration is already present in the project. The `HttpClient` it configures will be passed into `PatientApiClient` automatically. The missing-key check runs when that typed client is created.
+
+For local development, run these commands from `src/LifestyleChecker` (replace the placeholder with the supplied key):
+
+```powershell
+dotnet user-secrets init
+dotnet user-secrets set "PatientApi:SubscriptionKey" "YOUR_KEY"
+```
+
+`dotnet user-secrets init` adds a user-secrets ID to the project file; it does not add the key to the repository. Alternatively, set an environment variable named `PatientApi__SubscriptionKey`. Add setup instructions to the app `README.md`, without including the real key.
+
+### B. Fill in the API files
+
+In `Models/PatientInfo.cs`, add a small model for the *parsed* record:
+
+```csharp
+namespace LifestyleChecker.Models;
+
+public record PatientInfo(string NhsNumber, string Name, DateOnly Born);
+```
+
+In `Api/PatientApiClient.cs`, create a class whose constructor takes `HttpClient`:
+
+```csharp
+namespace LifestyleChecker.Api;
+
+public class PatientApiClient(HttpClient httpClient)
+{
+    // Implement GetPatientAsync(string nhsNumber, CancellationToken cancellationToken).
+}
+```
+
+Before sending a request, reject an NHS number that is empty or contains anything except digits. Do not convert it to an integer: the test API uses nine-digit sample values, and a string preserves leading zeroes. Send `GET tech-test/t2/patients/{nhsNumber}` using the configured base address. The subscription key is already supplied by the configured `HttpClient` header.
+
+Make the method return a result that distinguishes three cases: a valid `PatientInfo`, `NotFound` for HTTP 404, and `Unavailable` for timeout, network failure, another HTTP status, invalid JSON, missing fields, or an invalid birth date. An enum plus a result record is one simple design. Do not use `null` for both 404 and API failures. Parse `born` with `DateOnly.TryParseExact(born, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)` after reading the JSON with `System.Text.Json`.
+
+### C. Use `Index` as Part One
+
+In `Pages/Index.cshtml.cs`, inject the typed client into the existing `IndexModel`:
+
+```csharp
+using LifestyleChecker.Api;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace LifestyleChecker.Pages;
+
+public class IndexModel(PatientApiClient patientApiClient) : PageModel
+{
+    // Add bound form values, validation, and OnPostAsync here.
+}
+```
+
+Add `using MyPatientMatcher;` and `using MyAgeCalculator;` when calling the existing rule classes. In `Pages/Index.cshtml`, replace the welcome template with a POST form for NHS number, surname, and date of birth. Use Razor tag helpers (`asp-for`, `asp-validation-for`, and `asp-validation-summary`), visible labels, and an antiforgery token. A date input posts `yyyy-MM-dd`; parse that format explicitly before calling the API. Keep the bound form values on validation errors.
+
+The POST handler should validate the three inputs, call `GetPatientAsync` with the NHS number, handle 404 and service errors separately, then call `PatientMatcher.IsMatch(...)`. On a match, calculate `AgeCalculator.GetAge(patient.Born, DateOnly.FromDateTime(DateTime.Today))`. Show the brief's exact under-16 text or store the verified age in server-controlled session state and redirect to Part Two. Add the session middleware and guard both Part Two handlers when implementing Step 4.
+
+### D. Build in this order
+
+1. Finish `PatientInfo` and `PatientApiClient` so the existing `Program.cs` registration has a concrete client.
+2. Change `Index.cshtml.cs` to accept the client and process the form.
+3. Replace `Index.cshtml` with the labelled form and validation feedback.
+4. Add fake HTTP-handler and page-flow tests described below, then document key setup in `README.md`.
+
 ## 1. Configure the patient API client
 
 Create `src/LifestyleChecker/Api/PatientApiClient.cs` and a small response model, such as `src/LifestyleChecker/Models/PatientInfo.cs`.

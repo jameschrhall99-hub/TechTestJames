@@ -1,0 +1,1 @@
+Should i clean up src\LifestyleChecker\Rules\PatientMatcher.cs
