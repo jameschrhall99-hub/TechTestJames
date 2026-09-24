@@ -1,10 +1,41 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Check your details";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<h1>Check your details</h1>
+<p>Enter your details so we can check whether you can use this service.</p>
+
+<form method="post">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+
+    <div class="mb-3">
+        <label asp-for="NhsNumber" class="form-label">NHS number</label>
+        <input asp-for="NhsNumber" class="form-control" autocomplete="off" inputmode="numeric" />
+        <span asp-validation-for="NhsNumber" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Surname" class="form-label">Surname</label>
+        <input asp-for="Surname" class="form-control" autocomplete="family-name" />
+        <span asp-validation-for="Surname" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="DateOfBirth" class="form-label">Date of birth</label>
+        <input asp-for="DateOfBirth" type="date" class="form-control" autocomplete="bday" />
+        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Continue</button>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.OutcomeMessage))
+{
+    <p class="mt-3" role="status">@Model.OutcomeMessage</p>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
