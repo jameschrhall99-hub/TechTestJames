@@ -31,10 +31,16 @@ public class IndexModel(PatientApiClient patientApiClient) : PageModel
 
     public void OnGet()
     {
+        
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        //reset session
+        HttpContext.Session.Remove("PartOnePassed");
+        HttpContext.Session.Remove("VerifiedAge");
+        HttpContext.Session.Remove("ResultCategory");
+
         var today = DateOnly.FromDateTime(DateTime.Today);
 
         if (!DateOnly.TryParseExact(
@@ -98,7 +104,6 @@ public class IndexModel(PatientApiClient patientApiClient) : PageModel
         HttpContext.Session.SetString("PartOnePassed", "true");
         HttpContext.Session.SetInt32("VerifiedAge", age);
 
-        // The PartTwo page will be added in Step 4.
         return RedirectToPage("/PartTwo");
     }
 }
