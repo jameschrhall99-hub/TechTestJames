@@ -1,1 +1,55 @@
-//placeholder
+@page
+@model PartTwoModel
+@{
+    ViewData["Title"] = "Lifestyle questions";
+}
+
+<h1>Lifestyle questions</h1>
+<p>Please answer all three questions.</p>
+
+<form method="post">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+
+    <fieldset class="mb-3">
+        <legend>Do you drink on more than 2 days a week?</legend>
+        <div class="form-check">
+            <input asp-for="Q1Yes" type="radio" value="true" id="q1-yes" class="form-check-input" />
+            <label for="q1-yes" class="form-check-label">Yes</label>
+        </div>
+        <div class="form-check">
+            <input asp-for="Q1Yes" type="radio" value="false" id="q1-no" class="form-check-input" />
+            <label for="q1-no" class="form-check-label">No</label>
+        </div>
+        <span asp-validation-for="Q1Yes" class="text-danger"></span>
+    </fieldset>
+
+    <fieldset class="mb-3">
+        <legend>Do you smoke?</legend>
+        <div class="form-check">
+            <input asp-for="Q2Yes" type="radio" value="true" id="q2-yes" class="form-check-input" />
+            <label for="q2-yes" class="form-check-label">Yes</label>
+        </div>
+        <div class="form-check">
+            <input asp-for="Q2Yes" type="radio" value="false" id="q2-no" class="form-check-input" />
+            <label for="q2-no" class="form-check-label">No</label>
+        </div>
+        <span asp-validation-for="Q2Yes" class="text-danger"></span>
+    </fieldset>
+
+    <fieldset class="mb-3">
+        <legend>Do you exercise more than 1 hour per week?</legend>
+        <div class="form-check">
+            <input asp-for="Q3Yes" type="radio" value="true" id="q3-yes" class="form-check-input" />
+            <label for="q3-yes" class="form-check-label">Yes</label>
+        </div>
+        <div class="form-check">
+            <input asp-for="Q3Yes" type="radio" value="false" id="q3-no" class="form-check-input" />
+            <label for="q3-no" class="form-check-label">No</label>
+        </div>
+        <span asp-validation-for="Q3Yes" class="text-danger"></span>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Continue</button>
+</form>
+
+<p class="mt-3"><a asp-page="/Index">Start again</a></p>
