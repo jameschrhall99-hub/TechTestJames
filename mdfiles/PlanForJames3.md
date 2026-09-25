@@ -163,3 +163,114 @@ Use controlled dates in age tests. The example patients' birth years change over
 - The API client uses the correct endpoint and header without committing the key.
 - All four outcomes show the required text or progress to Part Two, and service errors are distinct.
 - The page reuses the Step 2 matching and age rules, with focused tests for the API and Part One flow.
+
+## 5. A practical way to write the tests
+
+Keep tests in the test project, with folders that mirror the app:
+
+```text
+tests/LifestyleChecker.Tests/
+  Api/PatientApiClientTests.cs
+  Pages/IndexModelTests.cs
+```
+
+Use your existing age and matcher test files where they are, or move them into a `Rules` folder later if you want the layout to mirror `src/LifestyleChecker/Rules`. The important point is that tests belong in `tests/LifestyleChecker.Tests`, not in the web app's `src` folder.
+
+### A. Test PatientApiClient without contacting the real API
+
+Make a small fake `HttpMessageHandler` that returns a response you choose. Give it to an `HttpClient`, then pass that client into `PatientApiClient`. This lets the test exercise the real JSON parsing and status handling while avoiding network calls and the subscription key.
+
+Pseudocode for the setup:
+
+```csharp
+var handler = new FakeHttpMessageHandler(request =>
+{
+    // Optionally check request.Method, request.RequestUri,
+    // and the Ocp-Apim-Subscription-Key header here.
+
+    return new HttpResponseMessage(HttpStatusCode.OK)
+    {
+        Content = new StringContent(
+            """{"nhsNumber":"123456789","name":"DOE, John","born":"25-12-1990"}""",
+            Encoding.UTF8,
+            "application/json")
+    };
+});
+
+var httpClient = new HttpClient(handler)
+{
+    BaseAddress = new Uri("https://al-tech-test-apim.azure-api.net/")
+};
+var apiClient = new PatientApiClient(httpClient);
+
+var result = await apiClient.GetPatientAsync("123456789", CancellationToken.None);
+
+Assert... // Check the result and parsed DateOnly(1990, 12, 25).
+```
+
+The fake handler can be a short test-only class:
+
+```csharp
+sealed class FakeHttpMessageHandler(
+    Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(respond(request));
+    }
+}
+```
+
+Adapt the return type and method names to your implementation. Write one focused test per important result:
+
+- **Success:** return the sample JSON; check the patient fields and that `born` became 25 December 1990.
+- **404:** return `HttpStatusCode.NotFound`; check that the client reports not found.
+- **Other HTTP status:** return `HttpStatusCode.ServiceUnavailable`; check that the client reports unavailable.
+- **Bad response:** try malformed JSON, a missing field, or `"born":"not-a-date"`; check that the client reports unavailable.
+- **Timeout/network failure:** have the fake handler throw the exception your client handles; check that the result is unavailable.
+- **Request details:** check the method is GET, the URI includes the NHS number, and the subscription header is sent. Use a fake value such as `"test-key"`; never use the real key in an automated test.
+- **Invalid NHS number:** if the client validates this before sending, check the fake handler was not called.
+
+### B. Test the Part One page decisions
+
+For page tests, provide a fake patient API dependency that returns a result you control. If the page currently depends directly on `PatientApiClient`, consider introducing a small interface (for example, `IPatientApiClient`) so tests can supply a fake; alternatively, use the real client with the fake HTTP handler above. Keep this small and use the approach that fits your current code.
+
+Pseudocode for a page test:
+
+```csharp
+var fakeApi = new FakePatientApiClient(
+    PatientApiResult.Found(new PatientInfo(
+        "123456789", "DOE, John", new DateOnly(1990, 12, 25))));
+
+var page = new IndexModel(fakeApi);
+page.NhsNumber = "123456789";
+page.Surname = " doe ";
+page.DateOfBirth = new DateOnly(1990, 12, 25);
+
+var result = await page.OnPostAsync();
+
+Assert... // The matching adult proceeds to Part Two.
+```
+
+Use your actual page property and result names. Add cases for:
+
+- Valid adult and correct details -> proceeds to the questionnaire.
+- 404 or mismatch in NHS number, surname, or DOB -> shows `Your details could not be found`.
+- Matching patient under 16 -> shows `You are not eligble for this service`.
+- API unavailable -> shows the service error, not the not-found message.
+- Missing or invalid form values -> returns validation feedback and does not call the fake API.
+
+For the last case, let the fake count calls and assert it was called zero times. This verifies that bad form input stops before making an API request.
+
+If you choose full integration tests instead, test the page through the ASP.NET Core test server and replace the real API service in dependency injection with a fake. That needs additional test-host setup; it is optional if direct page tests cover the decisions clearly.
+
+### C. Run tests as you add each case
+
+From the solution folder, run:
+
+```powershell
+dotnet test
+```
+
+Start with one success case, then add the 404 and failure cases, then the page outcomes. When a test fails, compare the expected result with the actual result and check which boundary or branch the test is exercising. Automated tests should never need the real API key; save the real key for one manual end-to-end check if the API is available.

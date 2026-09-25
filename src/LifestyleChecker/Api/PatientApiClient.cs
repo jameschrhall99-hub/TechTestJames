@@ -17,6 +17,11 @@ public enum PatientLookupStatus
     Unavailable
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="Status"></param>
+/// <param name="Patient"></param>
 public record PatientLookupResult(
 
     //lookup succeeded, found no patient, or failed
@@ -46,7 +51,7 @@ public class PatientApiClient(HttpClient httpClient)
                 return new PatientLookupResult(PatientLookupStatus.NotFound);
             }     
 
-            // Anything other than 2xx is unavailable.
+            // status code starts with anything but 2 is unavailable
             if(!response.IsSuccessStatusCode)
             {
                 return new PatientLookupResult(PatientLookupStatus.Unavailable);
