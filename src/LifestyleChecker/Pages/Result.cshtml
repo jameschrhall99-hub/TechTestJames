@@ -1,0 +1,10 @@
+@page
+@model ResultModel
+@{
+    ViewData["Title"] = "Your result";
+}
+
+<h1>Your result</h1>
+<p role="status">@Model.OutcomeMessage</p>
+
+<p><a asp-page="/Index">Start again</a></p>
