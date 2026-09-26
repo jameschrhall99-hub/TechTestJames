@@ -31,7 +31,10 @@ public class IndexModel(PatientApiClient patientApiClient) : PageModel
 
     public void OnGet()
     {
-        
+        //reset session
+        HttpContext.Session.Remove("PartOnePassed");
+        HttpContext.Session.Remove("VerifiedAge");
+        HttpContext.Session.Remove("ResultCategory");       
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)

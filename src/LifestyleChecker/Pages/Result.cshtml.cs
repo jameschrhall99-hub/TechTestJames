@@ -13,7 +13,7 @@ public class ResultModel : PageModel
 
         if(category == "High")
         {
-            OutcomeMessage = "We think there are some simple things you could do to improve you quality of life, please phone to book an appointment";           
+            OutcomeMessage = "We think there are some simple things you could do to improve your quality of life, please phone to book an appointment";           
             return Page();
         }
         else if(category == "Low")
