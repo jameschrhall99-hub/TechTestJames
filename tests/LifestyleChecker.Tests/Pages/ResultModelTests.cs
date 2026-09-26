@@ -60,6 +60,7 @@ public class ResultModelTests
         
         var result = model.OnGet();
 
+        Assert.IsType<PageResult>(result);
         Assert.Equal("Thank you for answering our questions, we don't need to see you at this time. Keep up the good work!", model.OutcomeMessage);
     }
 
@@ -78,6 +79,7 @@ public class ResultModelTests
         
         var result = model.OnGet();
 
+        Assert.IsType<PageResult>(result);
         Assert.Equal("We think there are some simple things you could do to improve your quality of life, please phone to book an appointment", model.OutcomeMessage);
     }
 
@@ -102,6 +104,6 @@ public class ResultModelTests
 
         Assert.Equal("High", session.GetString("ResultCategory"));
         Assert.Equal("We think there are some simple things you could do to improve your quality of life, please phone to book an appointment", model.OutcomeMessage);
-        
+
     }
 }

@@ -394,4 +394,35 @@ public class PartTwoModelTests
         Assert.Equal("/Index", redirect.PageName);
         Assert.Equal("High", session.GetString("ResultCategory"));
     }
+
+    [Fact]
+    public void CheckInvalidModelState()
+    {
+        //provide answers
+        var session = new TestSession();
+        var httpContext = new DefaultHttpContext { Session = session };
+        var model = new PartTwoModel
+        {
+            PageContext = new PageContext { HttpContext = httpContext },
+            Q1Yes = true,
+            Q2Yes = true,
+            Q3Yes = true
+        };
+
+        //set age to 20, pass to true
+        session.SetInt32("VerifiedAge", 20);
+        session.SetString("PartOnePassed", "true");
+
+        //add error
+        model.ModelState.AddModelError(nameof(model.Q2Yes), "Invalid answer.");
+
+        //submit the answers
+        var result = model.OnPost();
+
+        //result is expected
+        Assert.IsType<PageResult>(result);
+        Assert.Null(session.GetString("ResultCategory"));
+        Assert.Equal("true", session.GetString("PartOnePassed"));
+        Assert.Equal(20, session.GetInt32("VerifiedAge"));
+    }
 }
