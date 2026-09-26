@@ -149,3 +149,41 @@ Check these browser paths: all three radio groups have separate Yes/No choices a
 - [ ] `IndexModelTests.cs` covers clearing old session state on GET and on a failed new POST.
 - [ ] The optional age-64 scorer case is added if you want explicit 64/65/66 coverage.
 - [ ] The test command passes, and the manual browser checks are completed when an API key is available.
+
+## 9. Add tests for the remaining gaps
+
+The required follow-up tests cover two checks that are easy to miss when page handlers are called directly from unit tests. The final validation-message check is optional.
+
+### Check invalid `ModelState` when every answer has a value
+
+The three missing-answer tests check the `null` answer path. Add a separate test to prove that the handler also refuses to score when all three answers are present but `ModelState` contains an error.
+
+1. In `PartTwoModelTests.cs`, create a `PartTwoModel` with all three answers set to `true`.
+2. Give its session `PartOnePassed = "true"` and `VerifiedAge = 20`.
+3. Before calling `OnPost()`, add an error, for example:
+
+   ```csharp
+   model.ModelState.AddModelError(nameof(model.Q2Yes), "Invalid answer.");
+   ```
+
+4. Call `OnPost()` and assert it returns `PageResult`.
+5. Assert `ResultCategory` is still absent, and that `PartOnePassed` and `VerifiedAge` remain in session so the user can correct the form.
+
+All three answer properties must have values in this test. Otherwise the handler returns at its missing-answer check and the test does not reach the invalid-`ModelState` check.
+
+### Check valid result categories return the page and exact assignment text
+
+In `ResultModelTests.cs`, add a `[Theory]` with one `[InlineData]` row for `Low` and one for `High`. For each row, store the category in session, create the `ResultModel` with a `PageContext`, and call `OnGet()`.
+
+Assert both that the handler returns `PageResult` and that `OutcomeMessage` equals the exact expected string:
+
+| Category | Expected message |
+| --- | --- |
+| `Low` | `Thank you for answering our questions, we don't need to see you at this time. Keep up the good work!` |
+| `High` | `We think there are some simple things you could do to improve you quality of life, please phone to book an appointment` |
+
+Keep the assignment's `you quality` wording exactly. The current High message and its existing test use `your quality`; this new expectation should reveal that mismatch until the app message is corrected. This also verifies that a recognized category renders the result page instead of redirecting elsewhere.
+
+### Optional: check the required-answer message text
+
+The page-model tests that call `OnPost()` directly add errors to `ModelState` themselves. They therefore do not prove that the `[Required]` attributes have the intended messages. If you want to cover that detail without starting a web server, add a small data-annotations test using `Validator.TryValidateProperty` for a `null` answer and check the resulting error text. Repeat for Q1, Q2, and Q3, expecting `Answer question 1.`, `Answer question 2.`, and `Answer question 3.` as specified in `PlanForJames4.md`. This test will show if the page model's current “Please provide an answer...” messages differ from the plan. A later HTTP integration test can verify that those errors are rendered in the actual form.

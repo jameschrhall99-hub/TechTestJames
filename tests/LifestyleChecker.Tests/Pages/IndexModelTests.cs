@@ -13,9 +13,75 @@ namespace LifestyleChecker.Tests.Pages;
 public class IndexModelTests
 {
     [Fact]
+    public void OnGet_ClearsExistingFlowSessionValues()
+    {
+        //create page model with flow values in session
+        using var handler = new FakeHttpMessageHandler(_ =>
+            throw new InvalidOperationException(" API should not be called in this test."));
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://al-tech-test-apim.azure-api.net/")
+        };
+        var session = new TestSession();
+        session.SetString("PartOnePassed", "true");
+        session.SetInt32("VerifiedAge", 18);
+        session.SetString("ResultCategory", "Low");
+
+        var pageModel = new IndexModel(new PatientApiClient(httpClient))
+        {
+            PageContext = new PageContext
+            {
+                HttpContext = new DefaultHttpContext { Session = session }
+            }
+        };
+
+        //return to start page
+        pageModel.OnGet();
+
+        //previous flow cannot be resumed
+        Assert.Null(session.GetString("PartOnePassed"));
+        Assert.Null(session.GetInt32("VerifiedAge"));
+        Assert.Null(session.GetString("ResultCategory"));
+    }
+
+    [Fact]
+    public async Task OnPostAsync_InvalidInput_ClearsExistingFlowSessionValues()
+    {
+        //create model with stale values and force validation to fail
+        using var handler = new FakeHttpMessageHandler(_ =>
+            throw new InvalidOperationException(" API should not be called in this test."));
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://al-tech-test-apim.azure-api.net/")
+        };
+        var session = new TestSession();
+        session.SetString("PartOnePassed", "true");
+        session.SetInt32("VerifiedAge", 18);
+        session.SetString("ResultCategory", "Low");
+
+        var pageModel = new IndexModel(new PatientApiClient(httpClient))
+        {
+            PageContext = new PageContext
+            {
+                HttpContext = new DefaultHttpContext { Session = session }
+            }
+        };
+        pageModel.ModelState.AddModelError("TestInput", "Invalid test input.");
+
+        //submit invalid input, api should not be called
+        var result = await pageModel.OnPostAsync(CancellationToken.None);
+
+        //page is shown again and stale flow values are cleared
+        Assert.IsType<PageResult>(result);
+        Assert.Null(session.GetString("PartOnePassed"));
+        Assert.Null(session.GetInt32("VerifiedAge"));
+        Assert.Null(session.GetString("ResultCategory"));
+    }
+
+    [Fact]
     public async Task OnPostAsync_ValidAdultWithMatchingDetails_RedirectsToQuestionnaire()
     {
-        //use DOB 30 years ago so the patient is an adult always
+        //use DOB 30 years ago so  patient is always adult
         var today = DateOnly.FromDateTime(DateTime.Today);
         var dateOfBirth = today.AddYears(-30);
         var apiDateOfBirth = dateOfBirth.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
